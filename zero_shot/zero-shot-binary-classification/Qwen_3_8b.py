@@ -15,10 +15,10 @@ TARGET_GPU = "" # Target GPU node
 INPUT_CSV_PATH = "" # Dataset file path
 OUTPUT_DIR = "" # Output Directory
 COMMENT_COLUMN_NAME = "comment"
-GROUND_TRUTH_COLUMN_NAME = "level-1"
+GROUND_TRUTH_COLUMN_NAME = "is RB?"
 BATCH_SIZE = 16
 
-MODEL_ID = "Qwen/Qwen3-8B"#Model ID
+MODEL_ID = "Qwen/Qwen3-8B" # Model ID
 
 SYSTEM_PROMPT = """
 You are an expert in identifying regional biases in social media comments about Indian states and regions. Your task is to classify whether a comment contains regional biases or not.
@@ -39,18 +39,17 @@ Think: Does this comment mention or refer to:
 
 Step 2: Check for Elements reinforcing biases
 Look for these patterns:
-- Generalisations about people from a region ("All X are Y")
-- Assumptions about regional characteristics
+- Generalisations about people from a state or a regional group ("All X are Y")
+- Assumptions about state/regional characteristics
 - Comparative statements that imply superiority/inferiority
 - Overgeneralized cultural, linguistic, economic, political, or infrastructural claims
-- Reinforcement of common regional stereotypes
 
 Step 3: Assess the Nature of the Statement
 Consider:
 - Is this a factual observation or a generalised assumption?
-- Does it reinforce existing biases or challenge them?
-- Is it based on personal experience or broad generalisation?
-- Does it promote understanding or perpetuate divisions?
+- Does it reinforce existing biases?
+- Is it based on a broad generalisation?
+- Does it perpetuate divisions?
 
 Step 4: Final Classification
 Based on the analysis above, classify as:
@@ -61,7 +60,7 @@ Your response must include a brief line of reasoning followed by the final class
 """
 
 def setup_environment():
-    """Sets up GPU visibility and creates the output directory."""
+    # Sets up GPU visibility and creates the output directory.
     print(f"Restricting execution to GPU: {TARGET_GPU}")
     os.environ["CUDA_VISIBLE_DEVICES"] = TARGET_GPU
     
@@ -70,16 +69,14 @@ def setup_environment():
         os.makedirs(OUTPUT_DIR)
 
 def load_model_and_tokenizer():
-    """
-    Handles authentication and loads the Qwen2 model in INT8 precision.
-    """
+    # Handles authentication and loads the full model.
+
     print("Logging into Hugging Face Hub...")
     login(token=HF_API_KEY)
 
-    print(f"Loading model: {MODEL_ID} with INT8 quantization...")
+    print(f"Loading model: {MODEL_ID} in full precision (bfloat16)...")
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_ID,
-        load_in_8bit=True,
         device_map="auto",
         torch_dtype=torch.bfloat16 
     )
@@ -93,7 +90,7 @@ def load_model_and_tokenizer():
     return model, tokenizer
 
 def parse_single_response(response_text):
-    """Robustly parses a single model response text to ensure a 0 or 1 output."""
+    # Robustly parses a single model response text to ensure a 0 or 1 output. 
     prediction = -1
     reasoning = response_text.split("Classification:")[0].strip() or response_text
 
@@ -113,9 +110,8 @@ def parse_single_response(response_text):
     return prediction, reasoning
 
 def classify_batch(comments, model, tokenizer):
-    """
-    Generates classifications for a batch of comments for high throughput.
-    """
+    # Generates classifications for a batch of comments for high throughput.
+    
     messages = [
         [
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -148,7 +144,7 @@ def classify_batch(comments, model, tokenizer):
     return results
 
 def generate_evaluation_outputs(df):
-    """Generates and saves the classification report and confusion matrix."""
+    # Generates and saves the classification report and confusion matrix.
     y_true = df[GROUND_TRUTH_COLUMN_NAME].astype(int)
     y_pred = df['predicted_label'].astype(int)
 
@@ -173,22 +169,22 @@ def generate_evaluation_outputs(df):
     print(f"Confusion matrix saved to {cm_path}")
 
 def main():
-    """Main function to orchestrate the entire classification process."""
+    # Main function to orchestrate the entire classification process.
     setup_environment()
     model, tokenizer = load_model_and_tokenizer()
     
-    print(f"\nReading input CSV from: {INPUT_CSV_PATH}")
+    print(f"\nReading input CSV")
     df = pd.read_csv(INPUT_CSV_PATH)
 
     if COMMENT_COLUMN_NAME not in df.columns:
-        raise ValueError(f"Comment column '{COMMENT_COLUMN_NAME}' not found in the CSV.")
+        raise ValueError(f"Comment column error for '{COMMENT_COLUMN_NAME}'.")
 
     df[COMMENT_COLUMN_NAME] = df[COMMENT_COLUMN_NAME].astype(str).fillna("")
     comments_to_process = df[COMMENT_COLUMN_NAME].tolist()
     
     all_results = []
     
-    print(f"Starting classification for {len(comments_to_process)} comments with batch size {BATCH_SIZE}...")
+    print(f"Starting classification for comments with batch size {BATCH_SIZE}.")
     
     for i in tqdm(range(0, len(comments_to_process), BATCH_SIZE), desc="Classifying batches"):
         batch_comments = comments_to_process[i:i + BATCH_SIZE]
