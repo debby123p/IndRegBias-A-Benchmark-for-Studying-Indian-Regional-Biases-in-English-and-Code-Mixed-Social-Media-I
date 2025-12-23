@@ -25,12 +25,9 @@ if HF_TOKEN:
     except Exception as e:
         print(f"Login failed: {e}")
 
-def get_classifier_prompt():
-    """
-    Returns the Chain-of-Thought prompt strategy. 
-    Using 'Strategy 1' which reduces recency bias by defining severity levels first.
-    """
-    return """You are an expert content moderator. Your task is to analyze the following comment for regional bias and assign a severity score (1, 2, or 3).
+def get_classifier_prompt(): """
+
+You are an expert content moderator. Your task is to analyze the following comment for regional bias and assign a severity score (1, 2, or 3).
 
 **Instructions:**
 1. Analyze the comment for stereotypes, hostility, or hateful language.
