@@ -78,7 +78,7 @@ np.random.seed(CONFIG["seed"])
 
 def load_data(csv_path):
     # Loads Dataset
-    print(f"Loading dataset from {csv_path}...")
+    print(f"Loading dataset from {csv_path}.")
     try:
         df = pd.read_csv(csv_path)
         if 'level-1' not in df.columns or 'comment' not in df.columns:
@@ -314,7 +314,7 @@ def main():
     results_df.to_csv(os.path.join(CONFIG["output_root_dir"], "cv_metrics_summary.csv"))
     
     print("\n=============================================")
-    print("   5-FOLD CV COMPLETE (Mistral 7B + CoT)")
+    print("   5-FOLD CV COMPLETE (Mistral 7B)")
     print("=============================================")
     print(results_df)
 
