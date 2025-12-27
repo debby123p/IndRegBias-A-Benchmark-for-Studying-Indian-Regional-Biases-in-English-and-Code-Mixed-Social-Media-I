@@ -72,24 +72,13 @@ Eight prominent LLMs were selected for their instruction-following and reasoning
 
 1) Zero-Shot Results
 
-   The results for the models are presented in the zero-shot setting in the table. The codes for which are available in the folder named zero-shot-binary-classification, which is in [Link](https://github.com/debby123p/CAN-LARGE-LANGUAGE-MODELS-DETECT-INDIAN-REGIONAL-BIAS-DATASET-ANALYSIS/tree/main/zero_shot).
+   The results for the models are presented in the zero-shot setting in the table. The codes for which are available in the folder named zero-shot-binary-classification, which is in [zero-shot-binary-classification](https://github.com/debby123p/CAN-LARGE-LANGUAGE-MODELS-DETECT-INDIAN-REGIONAL-BIAS-DATASET-ANALYSIS/tree/main/zero_shot/zero-shot-binary-classification).
    
-   ![image](https://github.com/debby123p/IndiRegBias-A-Benchmark-Dataset-for-Regional-Bias-Detection-in-Indian-Language-Models/blob/main/Images/Binary%20Classification%20(11).png)
+   ![image](https://github.com/debby123p/CAN-LARGE-LANGUAGE-MODELS-DETECT-INDIAN-REGIONAL-BIAS-DATASET-ANALYSIS/blob/main/Images/PresentationWork%20Progress.png)
 
 3) Few-Shot Results
 
-   The few-shot experiment started with preparing the support with 500 examples (260 regional biases and 240 non-regional biases), with lower precision and F1-score values in comparison to the zero-shot score in both
-   classes.
-
-   ![image](https://github.com/debby123p/IndiRegBias-A-Benchmark-Dataset-for-Regional-Bias-Detection-in-Indian-Language-Models/blob/main/Images/Binary%20Classification%20(12).png)
-
-      • The few-shot method required excessive memory (40-53 GB) and runtime (25-35 hours) even after using a 4-bit model.
-   
-      • Built-in safety features likely confused the identification of bias with the generation of it, defaulting to incorrect ”safe” answers.
-   
-      • 4-bit quantisation, necessary for the few-shot method, severely degraded the model’s reasoning and destroyed performance.
-
-   We conducted the few-shot experiments with a smaller number of support (different combinations of regional biases and non-regional biases) on a smaller dataset of 1000 comments. The codes for which are available in the folder named Qwen_3_8b, which is in https://github.com/debby123p/CAN-LARGE-LANGUAGE-MODELS-DETECT-INDIAN-REGIONAL-BIAS-DATASET-ANALYSIS/tree/main/few-shot.
+   We conducted the few-shot experiments with a smaller number of support (different combinations of regional biases and non-regional biases) on a smaller dataset of 1000 comments for the model Qwen3_8b. The codes for which are available in [qwen_3_8b](https://github.com/debby123p/CAN-LARGE-LANGUAGE-MODELS-DETECT-INDIAN-REGIONAL-BIAS-DATASET-ANALYSIS/tree/main/few-shot).
 
    ![image](https://github.com/debby123p/IndiRegBias-A-Benchmark-Dataset-for-Regional-Bias-Detection-in-Indian-Language-Models/blob/main/Images/Binary%20Classification%20(13).png)
 
