@@ -11,14 +11,14 @@ import seaborn as sns
 import gc
 
 HF_TOKEN = "" # Hugging_face Token
-TARGET_GPU = "0" # Target GPU node
+TARGET_GPU = "" # Target GPU node 
 INPUT_CSV_PATH = "" # Dataset file path
 OUTPUT_DIR = "" # Output Directory
 COMMENT_COLUMN_NAME = "comment"
 GROUND_TRUTH_COLUMN_NAME = "severity"
 BATCH_SIZE = 16 
 
-MODEL_ID = "Qwen/Qwen3-8B" # Model ID
+MODEL_ID = "Qwen/Qwen3-8B"
 
 MODEL_PROMPT = """
 You are an expert in analysing the severity of regional biases in social media comments about Indian states and regions. You are provided with comments that have already been identified as containing regional bias. Your task is to determine the severity level of the bias present.
@@ -109,6 +109,7 @@ def parse_single_response(response_text):
 
 def classify_batch(comments, model, tokenizer):
     # Generates classifications for a batch of comments.
+    
     messages_batch = []
     for comment in comments:
         full_content = f"{MODEL_PROMPT}\n\nComment: \"{comment}\"\n\nBased on your analysis, provide your reasoning and final classification."
@@ -148,7 +149,6 @@ def generate_evaluation_outputs(df):
     # Generates and saves the classification report and confusion matrix.
     y_true = df[GROUND_TRUTH_COLUMN_NAME].astype(int)
     y_pred = df['predicted_label'].astype(int)
-
     target_names = ["Mild Bias (1)", "Moderate Bias (2)", "Severe Bias (3)"]
     labels = [1, 2, 3]
 
