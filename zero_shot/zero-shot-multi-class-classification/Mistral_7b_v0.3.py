@@ -15,10 +15,10 @@ TARGET_GPU = "" # Target GPU node
 INPUT_CSV_PATH = "" # Dataset file path
 OUTPUT_DIR = "" # Output Directory
 COMMENT_COLUMN_NAME = "comment"
-GROUND_TRUTH_COLUMN_NAME = "severity" 
+GROUND_TRUTH_COLUMN_NAME = "severity"
 BATCH_SIZE = 16 
 
-MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.3" # Model ID
+MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.3"
 
 MODEL_PROMPT = """
 You are an expert in analysing the severity of regional biases in social media comments about Indian states and regions. You are provided with comments that have already been identified as containing regional bias. Your task is to determine the severity level of the bias present.
@@ -92,7 +92,7 @@ def parse_single_response(response_text):
     # Robustly parses a single model response text to ensure a 1, 2, or 3 output.
     prediction = -1
     reasoning = response_text.split("Classification:")[0].strip() or response_text
-
+    
     match = re.search(r'Classification:\s*([123])', response_text)
     if match:
         prediction = int(match.group(1))
@@ -114,6 +114,7 @@ def classify_batch(comments, model, tokenizer):
         full_content = f"{MODEL_PROMPT}\n\nComment: \"{comment}\"\n\nBased on your analysis, provide your reasoning and final classification."
         messages_batch.append([{"role": "user", "content": full_content}])
     
+    # Applying chat template
     formatted_prompts = [tokenizer.apply_chat_template(msg, tokenize=False, add_generation_prompt=True) for msg in messages_batch]
     
     inputs = tokenizer(formatted_prompts, return_tensors="pt", padding=True, truncation=True, max_length=2048).to(model.device)
@@ -185,7 +186,7 @@ def main():
 
     if COMMENT_COLUMN_NAME not in df.columns:
         raise ValueError(f"Comment column error for '{COMMENT_COLUMN_NAME}'.")
-      
+        
     df[COMMENT_COLUMN_NAME] = df[COMMENT_COLUMN_NAME].astype(str).fillna("")
     comments_to_process = df[COMMENT_COLUMN_NAME].tolist()
     
