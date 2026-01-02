@@ -15,9 +15,10 @@ TARGET_GPU = "" # Target GPU node
 INPUT_CSV_PATH = "" # Dataset file path
 OUTPUT_DIR = "" # Output Directory
 COMMENT_COLUMN_NAME = "comment"
-GROUND_TRUTH_COLUMN_NAME = "severity" 
+GROUND_TRUTH_COLUMN_NAME = "severity"
 BATCH_SIZE = 16 
-MODEL_ID = "mistralai/Mistral-Nemo-Instruct-2407" # Model ID
+
+MODEL_ID = "mistralai/Mistral-Nemo-Instruct-2407"
 
 MODEL_PROMPT = """
 You are an expert in analysing the severity of regional biases in social media comments about Indian states and regions. You are provided with comments that have already been identified as containing regional bias. Your task is to determine the severity level of the bias present.
@@ -80,7 +81,7 @@ def load_model_and_tokenizer():
     )
 
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
-  
+
     if tokenizer.chat_template is None:
         print("WARNING: No chat template detected. Assigning a default ChatML template.")
         tokenizer.chat_template = "{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
@@ -95,6 +96,7 @@ def parse_single_response(response_text):
     # Robustly parses a single model response text to ensure a 1, 2, or 3 output.
     prediction = -1
     reasoning = response_text.split("Classification:")[0].strip() or response_text
+
     match = re.search(r'Classification:\s*([123])', response_text)
     if match:
         prediction = int(match.group(1))
@@ -114,10 +116,12 @@ def parse_single_response(response_text):
 
 def classify_batch(comments, model, tokenizer):
     # Generates classifications for a batch of comments.
+    
     messages_batch = []
     for comment in comments:
         full_content = f"{MODEL_PROMPT}\n\nComment: \"{comment}\"\n\nBased on your analysis, provide your reasoning and final classification."
         messages_batch.append([{"role": "user", "content": full_content}])
+
     formatted_prompts = [tokenizer.apply_chat_template(msg, tokenize=False, add_generation_prompt=True) for msg in messages_batch]
     
     inputs = tokenizer(formatted_prompts, return_tensors="pt", padding=True, truncation=True, max_length=2048).to(model.device)
@@ -132,6 +136,7 @@ def classify_batch(comments, model, tokenizer):
                 temperature=0.1, 
                 pad_token_id=tokenizer.eos_token_id
             )
+
         response_texts = tokenizer.batch_decode(outputs[:, inputs.input_ids.shape[1]:], skip_special_tokens=True)
 
         for text in response_texts:
@@ -151,7 +156,6 @@ def generate_evaluation_outputs(df):
     # Generates and saves the classification report and confusion matrix.
     y_true = df[GROUND_TRUTH_COLUMN_NAME].astype(int)
     y_pred = df['predicted_label'].astype(int)
-
     target_names = ["Mild Bias (1)", "Moderate Bias (2)", "Severe Bias (3)"]
     labels = [1, 2, 3]
 
