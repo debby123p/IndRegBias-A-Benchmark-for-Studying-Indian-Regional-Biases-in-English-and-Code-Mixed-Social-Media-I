@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
 from sklearn.metrics import classification_report, confusion_matrix
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 CONFIG = {
     "model_id": "Qwen/Qwen3-8B", # Model ID
@@ -38,7 +38,7 @@ REPORT_FILE = os.path.join(OUTPUT_DIR, "classification_report.txt")
 MATRIX_IMG = os.path.join(OUTPUT_DIR, "confusion_matrix.png")
 
 
-SYSTEM_PROMPT = """
+MODEL_PROMPT = """
 You are an expert in identifying regional biases in social media comments about Indian states and regions. Your task is to classify whether a comment contains regional biases or not.
 
 Task: Classify the given comment as either "REGIONAL BIAS" (1) or "NON-REGIONAL BIAS" (0).
@@ -77,22 +77,17 @@ Based on the analysis above, classify as:
 
 Output Format:
 Provide a brief reasoning followed by the classification.
-Format: "Reasoning: [text] ... Classification: [0 or 1]"
+Format: "Reasoning: [text] ...Classification: [0 or 1]"
 """
 
 def setup_model(model_id, target_device):
-    """Load 4-bit quantised model and tokenizer."""
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.bfloat16
-    )
-  
+    # Load full precision model and tokenizer.
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        quantization_config=bnb_config,
         device_map=target_device,
-        trust_remote_code=True
+        trust_remote_code=True,
+        dtype=torch.bfloat16  
     )
     
     tokenizer.padding_side = 'left'
@@ -102,7 +97,7 @@ def setup_model(model_id, target_device):
     return model, tokenizer
 
 def prepare_mixed_few_shot_data(rb_path, nrb_path, total_examples):
-    """Construct few-shot examples string from CSV file."""
+    # Construct few-shot examples string from CSV file.
     if not os.path.exists(rb_path) or not os.path.exists(nrb_path):
         sys.exit("Error: One or more few-shot source files not found.")
 
@@ -143,7 +138,7 @@ def prepare_mixed_few_shot_data(rb_path, nrb_path, total_examples):
     return formatted_prompt, used_comments
 
 def extract_classification(response_text):
-    """Parse reasoning and label from model output."""
+    # Parse reasoning and label from model output.
     match = re.search(r"Classification:\s*([01])", response_text, re.IGNORECASE)
     prediction = int(match.group(1)) if match else -1
     
@@ -153,7 +148,7 @@ def extract_classification(response_text):
     return reasoning, prediction
 
 def generate_metrics(df):
-    """Save classification report and confusion matrix."""
+    # Save classification report and confusion matrix.
     valid_df = df[df['predicted_label'] != -1]
     
     if valid_df.empty:
@@ -206,7 +201,7 @@ def main():
     df_full = pd.concat(df_list, ignore_index=True)
     df_process = df_full[~df_full['comment'].astype(str).str.strip().isin(exclude_comments)].copy()
     
-    print(f"Processing {len(df_process)} comments...")
+    print(f"Processing {len(df_process)} comments.")
 
     # Inference Loop
     results = []
@@ -219,7 +214,7 @@ def main():
             
             for _, row in batch.iterrows():
                 user_msg = f"{few_shot_prompt}\n--- Classify the following comment ---\nComment: \"{row['comment']}\""
-                chat = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_msg}]
+                chat = [{"role": "system", "content": MODEL_PROMPT}, {"role": "user", "content": user_msg}]
                 prompts.append(tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True))
 
             inputs = tokenizer(
@@ -229,7 +224,7 @@ def main():
                 truncation=True, 
                 max_length=CONFIG["context_window"]
             ).to(device)
-          
+            
             prompt_len = inputs.input_ids.shape[1]
             max_new = max(100, CONFIG["context_window"] - prompt_len - 10)
 
