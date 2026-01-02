@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
 from sklearn.metrics import classification_report, confusion_matrix
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
+# Configuration
 CONFIG = {
     "model_id": "Qwen/Qwen3-8B", # Model ID
     "device": "cuda:1", # GPU ID
@@ -17,7 +18,6 @@ CONFIG = {
     "few_shot_count": 15,
     "seed": 42
 }
-
 
 BASE_DIR = "" # Base directory to the data
 OUTPUT_DIR = "" # Output directory
@@ -33,8 +33,7 @@ RESULTS_CSV = os.path.join(OUTPUT_DIR, "classification_results.csv")
 REPORT_FILE = os.path.join(OUTPUT_DIR, "classification_report.txt")
 MATRIX_IMG = os.path.join(OUTPUT_DIR, "confusion_matrix.png")
 
-
-SYSTEM_PROMPT = """
+MODEL_PROMPT = """
 You are an expert in identifying regional biases in social media comments about Indian states and regions. Your task is to classify whether a comment contains regional biases or not.
 
 Task: Classify the given comment as either "REGIONAL BIAS" (1) or "NON-REGIONAL BIAS" (0).
@@ -77,18 +76,13 @@ Format: "Reasoning: [text] ... Classification: [0 or 1]"
 """
 
 def setup_model(model_id, target_device):
-    """Load 4-bit quantised model and tokenizer."""
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.bfloat16
-    )
-    
+    # Load full precision model and tokenizer.   
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        quantization_config=bnb_config,
         device_map=target_device,
-        trust_remote_code=True
+        trust_remote_code=True,
+        dtype=torch.bfloat16
     )
     
     tokenizer.padding_side = 'left'
@@ -98,7 +92,7 @@ def setup_model(model_id, target_device):
     return model, tokenizer
 
 def prepare_few_shot_data(file_path, num_examples):
-    """Construct few-shot examples string from CSV file."""
+    # Construct few-shot examples string from CSV file.
     if not os.path.exists(file_path):
         sys.exit(f"Error: Few-shot file not found at {file_path}")
 
@@ -122,8 +116,9 @@ def prepare_few_shot_data(file_path, num_examples):
     return formatted_prompt, used_comments
 
 def extract_classification(response_text):
-    """Parse reasoning and label from model output."""
-     # Extract Classification
+    # Parse reasoning and label from model output.
+    
+    # Extract Classification
     match = re.search(r"Classification:\s*([01])", response_text, re.IGNORECASE)
     prediction = int(match.group(1)) if match else -1
 
@@ -134,7 +129,7 @@ def extract_classification(response_text):
     return reasoning, prediction
 
 def generate_metrics(df):
-    """Save classification report and confusion matrix."""
+    # Save classification report and confusion matrix.
     valid_df = df[df['predicted_label'] != -1]
     
     if valid_df.empty:
@@ -194,7 +189,7 @@ def main():
             
             for _, row in batch.iterrows():
                 user_msg = f"{few_shot_prompt}\n--- Classify the following comment ---\nComment: \"{row['comment']}\""
-                chat = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_msg}]
+                chat = [{"role": "system", "content": MODEL_PROMPT}, {"role": "user", "content": user_msg}]
                 prompts.append(tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True))
 
             inputs = tokenizer(
